@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Viewer</title>
+    <title>Modern PDF Viewer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <style>
         body {
@@ -14,6 +14,11 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
+            transition: background 0.3s ease;
+        }
+        body.dark-mode {
+            background: linear-gradient(to right, #2c3e50, #34495e);
+            color: #fff;
         }
         #book-viewer {
             width: 90%;
@@ -25,24 +30,34 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            transition: background 0.3s ease;
+        }
+        body.dark-mode #book-viewer {
+            background: #2c3e50;
         }
         #toolbar {
             background: #37474F;
             color: white;
-            padding: 20px;
+            padding: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
+            transition: background 0.3s ease;
+        }
+        body.dark-mode #toolbar {
+            background: #1c2833;
         }
         #toolbar button, #toolbar select {
             background: #26A69A;
             color: white;
             border: none;
             border-radius: 5px;
-            padding: 15px 20px;
+            padding: 10px 15px;
             cursor: pointer;
-            font-size: 18px;
+            font-size: 16px;
+            margin: 0 5px;
+            transition: background 0.3s ease;
         }
         #toolbar button:hover, #toolbar select:hover {
             background: #00796B;
@@ -54,12 +69,29 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            transition: background 0.3s ease;
+        }
+        body.dark-mode #pdf-container {
+            background: #34495e;
         }
         canvas {
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             max-width: 100%;
             max-height: 100%;
+            transition: box-shadow 0.3s ease;
+        }
+        body.dark-mode canvas {
+            box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+        }
+        #loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            color: #26A69A;
         }
         @media (max-width: 768px) {
             #book-viewer {
@@ -79,12 +111,16 @@
     <div id="book-viewer">
         <div id="toolbar">
             <button id="prev">Previous</button>
-            <span id="page-info">Page <span id="current-page">1</span> of <span id="total-pages">0</span></span>
-            <select id="chapter-select"></select>
             <button id="next">Next</button>
+            <span id="page-info">Page <span id="current-page">1</span> of <span id="total-pages">0</span></span>
+            <input type="range" id="page-slider" min="1" max="1" value="1">
+            <select id="chapter-select"></select>
+            <button id="fullscreen">Fullscreen</button>
+            <button id="dark-mode-toggle">Dark Mode</button>
         </div>
         <div id="pdf-container">
             <canvas id="pdf-canvas"></canvas>
+            <div id="loading">Loading...</div>
         </div>
     </div>
 
@@ -125,6 +161,7 @@
 
         const renderPage = (num) => {
             pageRendering = true;
+            document.getElementById('loading').style.display = 'block';
 
             pdfDoc.getPage(num).then((page) => {
                 const viewport = page.getViewport({ scale: 1 });
@@ -151,6 +188,7 @@
 
                 renderTask.promise.then(() => {
                     pageRendering = false;
+                    document.getElementById('loading').style.display = 'none';
                     if (pageNumPending !== null) {
                         renderPage(pageNumPending);
                         pageNumPending = null;
@@ -159,6 +197,7 @@
             });
 
             document.getElementById('current-page').textContent = num;
+            document.getElementById('page-slider').value = num;
         };
 
         const queueRenderPage = (num) => {
@@ -185,6 +224,14 @@
             queueRenderPage(pageNum);
         };
 
+        const onPageSliderChange = (event) => {
+            const selectedPage = parseInt(event.target.value);
+            if (selectedPage >= 1 && selectedPage <= pdfDoc.numPages) {
+                pageNum = selectedPage;
+                queueRenderPage(pageNum);
+            }
+        };
+
         const populateChapters = () => {
             const chapterSelect = document.getElementById('chapter-select');
             for (const [chapter, page] of Object.entries(chapterPages)) {
@@ -203,9 +250,22 @@
             }
         };
 
+        const onFullscreen = () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        };
+
+        const onDarkModeToggle = () => {
+            document.body.classList.toggle('dark-mode');
+        };
+
         pdfjsLib.getDocument({ data: atob(pdfBase64.split(',')[1]) }).promise.then((pdfDoc_) => {
             pdfDoc = pdfDoc_;
             document.getElementById('total-pages').textContent = pdfDoc.numPages;
+            document.getElementById('page-slider').max = pdfDoc.numPages;
 
             populateChapters();
             renderPage(pageNum);
@@ -213,7 +273,10 @@
 
         document.getElementById('prev').addEventListener('click', onPrevPage);
         document.getElementById('next').addEventListener('click', onNextPage);
+        document.getElementById('page-slider').addEventListener('input', onPageSliderChange);
         document.getElementById('chapter-select').addEventListener('change', onChapterSelect);
+        document.getElementById('fullscreen').addEventListener('click', onFullscreen);
+        document.getElementById('dark-mode-toggle').addEventListener('click', onDarkModeToggle);
 
         window.addEventListener('resize', () => renderPage(pageNum));
     </script>
