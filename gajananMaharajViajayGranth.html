@@ -95,14 +95,26 @@
         }
         @media (max-width: 768px) {
             #book-viewer {
+                width: 100%;
                 height: 100vh;
+                border-radius: 0;
             }
             #toolbar {
                 flex-direction: column;
                 align-items: flex-start;
+                padding: 10px;
             }
             #toolbar button, #toolbar select {
-                margin-bottom: 10px;
+                width: 100%;
+                margin: 5px 0;
+            }
+            #page-info {
+                margin: 10px 0;
+            }
+        }
+        @media (orientation: portrait) {
+            #book-viewer {
+                height: 80vh;
             }
         }
     </style>
